@@ -2,7 +2,7 @@ import { io } from 'socket.io-client';
 import { store } from '../app/store';
 import { addBid, updateAuctionStatus } from '../features/auctions/auctionsSlice';
 
-const SOCKET_URL = 'http://localhost:5000';
+const SOCKET_URL = 'https://auction-bidding-o9om.onrender.com';
 
 class SocketService {
   constructor() {
