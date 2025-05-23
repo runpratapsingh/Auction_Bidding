@@ -11,7 +11,7 @@ const transporter = nodemailer.createTransport({
 });
 
 const sendVerificationEmail = async (email, token) => {
-  const verificationUrl = `http://localhost:3000/verify-email?token=${token}`;
+  const verificationUrl = `https://auction-bidding.vercel.app/verify-email?token=${token}`;
   
   const mailOptions = {
     from: 'sarunpratap049@gmail.com',
