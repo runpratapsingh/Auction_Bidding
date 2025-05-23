@@ -34,9 +34,13 @@ const ProtectedRoute = ({ children, requireAdmin = false }) => {
     return <Navigate to="/login" />;
   }
 
-  if (requireAdmin && (!user?.roles || !user.roles.includes('admin'))) {
+  // console.log("User:", user);
+  console.log("Admin check:", user ,user.user, user.roles ,requireAdmin, user?.roles, user?.roles?.includes('admin'));
+  
+  if (requireAdmin && (!user.user || !user.user.roles || !user.user.roles.includes('admin'))) {
     return <Navigate to="/" />;
   }
+  
 
   return children;
 };
