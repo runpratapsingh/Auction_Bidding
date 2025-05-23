@@ -1,18 +1,19 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const { body, validationResult } = require('express-validator');
-const jwt = require('jsonwebtoken');
-const crypto = require('crypto');
-const User = require('../models/user');
-const { sendVerificationEmail } = require('../utils/emailService');
-const { auth } = require('../middleware/authMiddleware');
+const { body, validationResult } = require("express-validator");
+const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
+const User = require("../models/user");
+const { sendVerificationEmail } = require("../utils/emailService");
+const { auth } = require("../middleware/authMiddleware");
 
 // Register new user
-router.post('/register',
+router.post(
+  "/register",
   [
-    body('username').trim().isLength({ min: 3 }).escape(),
-    body('email').isEmail().normalizeEmail(),
-    body('password').isLength({ min: 6 })
+    body("username").trim().isLength({ min: 3 }).escape(),
+    body("email").isEmail().normalizeEmail(),
+    body("password").isLength({ min: 6 }),
   ],
   async (req, res) => {
     try {
@@ -24,14 +25,18 @@ router.post('/register',
       const { username, email, password } = req.body;
 
       // Check if user already exists
-      const existingUser = await User.findOne({ $or: [{ email }, { username }] });
+      const existingUser = await User.findOne({
+        $or: [{ email }, { username }],
+      });
       if (existingUser) {
-        return res.status(400).json({ error: 'User already exists' });
+        return res.status(400).json({ error: "User already exists" });
       }
 
       // Create verification token
-      const verificationToken = crypto.randomBytes(32).toString('hex');
-      const verificationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+      const verificationToken = crypto.randomBytes(32).toString("hex");
+      const verificationTokenExpires = new Date(
+        Date.now() + 24 * 60 * 60 * 1000
+      ); // 24 hours
 
       // Create new user
       const user = new User({
@@ -39,7 +44,7 @@ router.post('/register',
         email,
         passwordHash: password,
         verificationToken,
-        verificationTokenExpires
+        verificationTokenExpires,
       });
 
       await user.save();
@@ -47,19 +52,20 @@ router.post('/register',
       // Send verification email
       await sendVerificationEmail(email, verificationToken);
 
-      res.status(201).json({ message: 'Registration successful. Please check your email to verify your account.' });
+      res.status(201).json({
+        message:
+          "Registration successful. Please check your email to verify your account.",
+      });
     } catch (error) {
-      res.status(500).json({ error: 'Server error' });
+      res.status(500).json({ error: "Server error" });
     }
   }
 );
 
 // Login user
-router.post('/login',
-  [
-    body('email').isEmail().normalizeEmail(),
-    body('password').exists()
-  ],
+router.post(
+  "/login",
+  [body("email").isEmail().normalizeEmail(), body("password").exists()],
   async (req, res) => {
     try {
       const errors = validationResult(req);
@@ -72,26 +78,27 @@ router.post('/login',
       // Find user
       const user = await User.findOne({ email });
       if (!user) {
-        return res.status(401).json({ error: 'Invalid credentials' });
+        return res.status(401).json({ error: "Invalid credentials" });
       }
 
       // Check if email is verified
       if (!user.emailVerified) {
-        return res.status(401).json({ error: 'Please verify your email first' });
+        return res.status(401).json({
+          error:
+            "Please verify your email address first. If you don’t see the verification email in your inbox, please check your spam or junk folder.",
+        });
       }
 
       // Check password
       const isMatch = await user.comparePassword(password);
       if (!isMatch) {
-        return res.status(401).json({ error: 'Invalid credentials' });
+        return res.status(401).json({ error: "Invalid credentials" });
       }
 
       // Generate JWT token
-      const token = jwt.sign(
-        { userId: user._id },
-        process.env.JWT_SECRET,
-        { expiresIn: '24h' }
-      );
+      const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
+        expiresIn: "24h",
+      });
 
       res.json({
         token,
@@ -99,25 +106,27 @@ router.post('/login',
           id: user._id,
           username: user.username,
           email: user.email,
-          roles: user.roles
-        }
+          roles: user.roles,
+        },
       });
     } catch (error) {
-      res.status(500).json({ error: 'Server error',message:error.message });
+      res.status(500).json({ error: "Server error", message: error.message });
     }
   }
 );
 
 // Verify email
-router.get('/verify-email/:token', async (req, res) => {
+router.get("/verify-email/:token", async (req, res) => {
   try {
     const user = await User.findOne({
       verificationToken: req.params.token,
-      verificationTokenExpires: { $gt: Date.now() }
+      verificationTokenExpires: { $gt: Date.now() },
     });
 
     if (!user) {
-      return res.status(400).json({ error: 'Invalid or expired verification token' });
+      return res
+        .status(400)
+        .json({ error: "Invalid or expired verification token" });
     }
 
     user.emailVerified = true;
@@ -125,22 +134,22 @@ router.get('/verify-email/:token', async (req, res) => {
     user.verificationTokenExpires = undefined;
     await user.save();
 
-    res.json({ message: 'Email verified successfully' });
+    res.json({ message: "Email verified successfully" });
   } catch (error) {
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ error: "Server error" });
   }
 });
 
 // Get current user
-router.get('/me', auth, async (req, res) => {
+router.get("/me", auth, async (req, res) => {
   res.json({
     user: {
       id: req.user._id,
       username: req.user.username,
       email: req.user.email,
-      roles: req.user.roles
-    }
+      roles: req.user.roles,
+    },
   });
 });
 
-module.exports = router; 
+module.exports = router;
