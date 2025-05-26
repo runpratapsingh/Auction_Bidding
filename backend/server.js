@@ -5,6 +5,7 @@ const cors = require('cors');
 const http = require('http');
 const socketIo = require('socket.io');
 const cron = require('node-cron');
+const { updateAuctionStatuses } = require('./utils/auctionStatusUpdater');
 
 const app = express();
 const server = http.createServer(app);
@@ -46,29 +47,28 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/auctions', require('./routes/auctions'));
 app.use('/api/users', require('./routes/users'));
 
-// Scheduled job to check and close expired auctions
+// Scheduled job to update auction statuses
 cron.schedule('* * * * *', async () => {
   try {
-    const Auction = require('./models/auction');
-    const now = new Date();
+    await updateAuctionStatuses();
     
-    const expiredAuctions = await Auction.find({
-      status: 'active',
-      endTime: { $lte: now }
+    // Notify clients about status changes
+    const updatedAuctions = await Auction.find({
+      $or: [
+        { status: 'active' },
+        { status: 'closed' }
+      ]
     });
-
-    for (const auction of expiredAuctions) {
-      auction.status = 'closed';
-      await auction.save();
-      
-      // Notify all connected clients about auction closure
-      io.to(`auction_${auction._id}`).emit('auctionClosed', {
+    
+    for (const auction of updatedAuctions) {
+      io.to(`auction_${auction._id}`).emit('auctionStatusChanged', {
         auctionId: auction._id,
-        message: 'Auction has ended'
+        status: auction.status,
+        message: `Auction is now ${auction.status}`
       });
     }
   } catch (error) {
-    console.error('Error in auction closure job:', error);
+    console.error('Error in auction status update job:', error);
   }
 });
 

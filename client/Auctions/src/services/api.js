@@ -2,6 +2,7 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
 const baseQuery = fetchBaseQuery({
   baseUrl: 'https://auction-bidding-o9om.onrender.com/api',
+  
   prepareHeaders: (headers, { getState }) => {
     const token = getState().auth.token;
     if (token) {
